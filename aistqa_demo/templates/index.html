@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>AISTQA Demo</title>
+    <script type="text/javascript">
+      window.baseurl = {{ request.script_root|tojson|safe }};
+    </script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/ractive@0.10.8/ractive.min.js"></script>
+    <script type="text/ractive" id="content_template">
+    {% raw %}
+
+      {{#partial details}}
+        {{#if block.showDetail}}
+          <dl class="details">
+            <dt>Query</dt>
+            <dd>{{{wrap('code')(block.query)}}}</dd>
+            <dt>Class</dt>
+            <dd>{{{block.class.map(wrap('code')).join(', ')}}}</dd>
+            <dt>Entity</dt>
+            <dd>{{{block.entity.map(wrap('code')).join(', ')}}}</dd>
+            <dt>Predicate</dt>
+            <dd>{{{block.predicate.map(wrap('code')).join(', ')}}}</dd>
+          </dl>
+        {{/if}}
+        <label class="details" on-click="toggleDetail">
+          {{{block.showDetail ? "&#9650; Hide" : "&#9654; Show"}}} parsing results
+        </label>
+      {{/partial}}
+
+      {{#partial wikidata}}
+        <div class="details">
+          {{#each block.answer}}
+            {{#with .uri.wikidata}}
+              <div class="wikidata">
+                {{#with .thumbnail}}
+                  <img src="{{.source}}" height="{{.height}}" width="{{.width}}">
+                {{/with}}
+                <h1>{{../name}}</h1>
+                <div>{{{.extract_html}}}</div>
+              </div>
+            {{/with}}
+          {{/each}}
+        </div>
+      {{/partial}}
+
+      {{#partial datum}}
+        {{#with .uri || .['callret-0']}}
+          {{#if .type == 'typed-literal'}}
+            {{#if .datatype == "http://www.w3.org/2001/XMLSchema#date"}}
+              {{.value}}
+            {{elseif .datatype == "http://www.w3.org/2001/XMLSchema#integer"}}
+              {{.value}}
+            {{else}}
+              ?datatype
+            {{/if}}
+          {{elseif .type == 'uri'}}
+            <a href="{{.value}}">{{.name}}</a>
+          {{else}}
+            ?type
+          {{/if}}
+        {{else}}
+          ?var
+        {{/with}}
+      {{/partial}}
+
+      {{#partial andlist}}
+        {{#if .length == 1}}
+          {{>datum .[0]}}
+        {{else}}
+          {{#each .slice(0, -1)}}{{#if @index}}, {{/if}}
+            {{>datum .}}
+          {{/each}} and {{>datum .[.length - 1]}}
+        {{/if}}
+      {{/partial}}
+
+      {{#partial viable_answers}}
+        {{#each .}}
+          {{#if .text}}
+            <section>{{.text}}</section>
+          {{elseif .html}}
+            <section>{{{.html}}}</section>
+          {{elseif .matches}}
+            <p>Did you mean one of these?</p>
+            <ul>
+              {{#each .matches}}
+                <li>{{.}}</li>
+              {{/each}}
+            </ul>
+          {{/if}}
+        {{/each}}
+      {{/partial}}
+
+
+
+
+      {{! --- main template --- }}
+
+      <section id="dialogue">
+        {{#each blocks as block}}
+          <article class="question">
+            {{#if block.questionHTML}}
+              {{{block.questionHTML}}}
+            {{else}}
+              {{block.question}}
+            {{/if}}
+          </article>
+
+          <article class-error="error" class="answer">
+            {{#if block.error}}
+              {{{block.error}}}
+              {{#if block.errorDetails}}
+                <div class="details">
+                  {{block.errorDetails}}
+                </div>
+              {{/if}}
+              {{>details block}}
+            {{elseif block.answer}}
+              {{>andlist block.answer}}
+              {{#if block.haswikidata}}
+                {{>wikidata block}}
+              {{/if}}
+              {{>details block}}
+            {{elseif block.viable_answers}}
+              {{>viable_answers block.viable_answers}}
+            {{else}}
+              {{typing}}
+            {{/if}}
+          </article>
+        {{/each}}
+      </section>
+
+      <form id="question_form">
+        <input id="question" value="{{question}}" on-keypress="pressKeyInQuestion" placeholder="Ask a question">
+        {{#if recognition}}
+          <button id="question_listen" on-click="listen" class-listening="listening" title="{{key.mod}}{{key.shift}}.">&#x2B24;</button>
+        {{/if}}
+      </form>
+
+    {% endraw %}
+    </script>
+  </head>
+  <body>
+    <div id="content">
+    </div>
+    <script type="text/javascript" src="{{ url_for('static', filename='script.js') }}"></script>
+  </body>
+</html>

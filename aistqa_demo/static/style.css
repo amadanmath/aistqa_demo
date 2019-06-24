@@ -1,0 +1,138 @@
+:root {
+  --width: 960px;
+  --input-area-height: 60px;
+  --question-color: #9999ff;
+  --answer-color: #99ff99;
+  --error-color: #ff9999;
+  --highlight-color: rgba(32, 32, 128, 0.2);
+  --hoverbox-bgcolor: #ccccff;
+}
+
+body {
+  font-family: Verdana, sans-serif;
+  font-size: 1.5em;
+  overscroll-behavior: none;
+  margin: 0;
+  padding: 0;
+}
+
+#content {
+  width: var(--width);
+  margin-left: calc((100vw - var(--width)) / 2);
+  height: 100vh;
+}
+
+#dialogue {
+  width: 100%;
+  height: calc(100% - var(--input-area-height));
+  overflow-y: scroll;
+  overscroll-behavior: contain;
+}
+
+#question_form {
+  position: fixed;
+  height: var(--input-area-height);
+  left: calc((100vw - var(--width)) / 2);
+  right: calc((100vw - var(--width)) / 2);
+  bottom: 0;
+  background-color: white;
+  border: 1px solid grey;
+  padding: 2px;
+  display: flex;
+}
+#question_form:focus-within {
+  outline: medium invert color;
+}
+
+#question {
+  flex-grow: 2;
+  border: none;
+  /* height: var(--input-area-height); */
+  font-size: 40px;
+  padding: 5px;
+}
+
+#question:focus, #question_listen:focus {
+  outline: none;
+}
+
+#question_listen {
+  height: var(--input-area-height);
+  width: var(--input-area-height);
+  font-size: 30px;
+}
+#question_listen.listening {
+  background-color: red;
+  color: white;
+}
+
+
+article {
+  border: 2px solid;
+  border-radius: 10px;
+  padding: 10px;
+  margin: 10px;
+}
+
+article::after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+article.question {
+  border-color: var(--question-color);
+}
+article.question::before {
+  content: "?";
+  color: var(--question-color);
+}
+article.answer {
+  border-color: var(--answer-color);
+}
+article.answer::before {
+  content: "!";
+  color: var(--answer-color);
+}
+article.answer.error {
+  border-color: var(--error-color);
+}
+article.answer .details {
+  font-size: 70%;
+  display: block;
+}
+
+article.answer.error::before {
+  color: var(--error-color);
+}
+article::before {
+  margin: -5px 5px 5px -5px;
+  float: right;
+  display: block;
+  content: "?";
+  width: 40px;
+  text-align: center;
+  font-size: 40px;
+  font-weight: bold;
+}
+
+article.question em {
+  background-color: var(--highlight-color);
+}
+article.answer label {
+  user-select: none;
+}
+
+article > section {
+  overflow-x: scroll;
+}
+
+.wikidata img {
+  float: right;
+}
+
+.wikidata::after {
+  content: "";
+  display: table;
+  clear: both;
+}
