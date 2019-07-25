@@ -19,6 +19,7 @@
   const r = new Ractive({
     el: 'content',
     template: '#content_template',
+    partials: window.partials,
     data: {
       question: '',
       blocks: [],
@@ -44,8 +45,7 @@
 
     recognition.onresult = evt => {
       let transcript = evt.results[0][0].transcript;
-      r.set('question', transcript);
-      askQuestion();
+      r.set('question', transcript).then(askQuestion);
     }
 
     recognition.onspeechend = evt => {
@@ -64,6 +64,18 @@
           recognition.start();
         }
         return false;
+      }
+
+      // XXX DEBUG?
+      if (evt.key == 'k' && (isMac ? evt.metaKey : evt.ctrlKey)) {
+        console.log("Refreshing partials");
+        fetch(baseurl + '/partials')
+        .then(response => response.json())
+        .then(response => {
+          Object.keys(response).forEach(k => r.resetPartial(k, response[k]))
+          // Object.assign(r.partials, response);
+          //r.unrender().then(() => r.render());
+        });
       }
     });
   }
@@ -140,6 +152,10 @@
       }
       return false;
     },
+    ask: ctx => {
+      const question = ctx.node.textContent;
+      r.set('question', question).then(askQuestion);
+    }
   });
 
   // Handle the raw response to the question, catching errors
