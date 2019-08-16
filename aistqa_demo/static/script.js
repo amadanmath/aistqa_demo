@@ -34,6 +34,26 @@
   });
   if (Ractive.DEBUG) window.r = r;
 
+  // Test if the element is scrolled to the bottom
+  function scrolledToBottom(element) {
+    return element.scrollHeight - element.scrollTop <= element.clientHeight + 1; // take care of inexactitude
+  }
+
+  // Make it so the element is scrolled to the bottom
+  function scrollToBottom(element) {
+    element.scrollTo(0, element.scrollHeight);
+  }
+
+  // Handle the dialogue attach-to-bottom thing
+  let attachedToBottom = true;
+  const dialogueSection = document.querySelector('#dialogue');
+  r.observe('blocks', function (newValue, oldValue, keypath) {
+    attachedToBottom = scrolledToBottom(dialogueSection);
+  });
+  r.observe('blocks', function (newValue, oldValue, keypath) {
+    if (attachedToBottom) scrollToBottom(dialogueSection);
+  }, { defer: true });
+
   // See if speech recognition engine is available
   const recognition = (function () {
     const recogClass = window.webkitSpeechRecognition || window.SpeechRecognition;
@@ -72,6 +92,7 @@
         fetch(baseurl + '/partials')
         .then(response => response.json())
         .then(response => {
+          console.log(response);
           Object.keys(response).forEach(k => r.resetPartial(k, response[k]))
           // Object.assign(r.partials, response);
           //r.unrender().then(() => r.render());
@@ -89,30 +110,6 @@
   function htmlEncode(string) {
     scratch.textContent = string;
     return scratch.innerHTML;
-  }
-
-  // Test if the element is scrolled to the bottom
-  function scrolledToBottom(element) {
-    return element.scrollHeight - element.scrollTop === element.clientHeight;
-  }
-
-  // Make it so the element is scrolled to the bottom
-  function scrollToBottom(element) {
-    element.scrollTo(0, element.scrollHeight);
-  }
-
-  // Wrapper for any model-changing functions that need to
-  // worry about whether or not to scroll the dialogue div
-  // The function needs to return a Promise, as usual for Ractive
-  // Typically: changeDialogue(() => r.set(...))
-  function changeDialogue(fn) {
-    const dialogueSection = document.querySelector('#dialogue');
-    const bottom = scrolledToBottom(dialogueSection);
-    fn().then(() => {
-      if (bottom) {
-        scrollToBottom(dialogueSection);
-      }
-    });
   }
 
   // Simulate typing by cycling between '', '.', '..' and '...'
@@ -139,9 +136,6 @@
         return true;
       }
     },
-    toggleDetail: function(ctx) {
-      changeDialogue(() => ctx.toggle('showDetail'));
-    },
     listen: () => {
       if (r.get('listening')) {
         r.set('listening', false);
@@ -163,7 +157,7 @@
     if (!response.ok) {
       questionData.error = "I am sorry, something is wrong, I got confused.";
       console.error("Response not OK", response);
-      changeDialogue(() => r.update('blocks'));
+      r.update('blocks');
       return;
     }
     response.json().then(handleAnswer.bind(null, questionData));
@@ -201,7 +195,7 @@
     // questionData.predicate = trial.predicate;
     // questionData.entity = trial.entity;
     // questionData.class = trial.class;
-    changeDialogue(() => r.update('blocks'));
+    r.update('blocks');
   }
 
   async function fetchWikidata(questionData, part) {
@@ -233,7 +227,7 @@
           t.width /= ratio;
         }
       }
-      changeDialogue(() => r.update('blocks'));
+      r.update('blocks');
     }
   }
 
@@ -259,7 +253,7 @@
     const questionData = {
       question: question,
     };
-    changeDialogue(() => r.push('blocks', questionData));
+    r.push('blocks', questionData);
 
     fetch(baseurl + '/answer', {
       method: 'POST',
@@ -273,7 +267,7 @@
     .catch(response => {
       console.error(response);
       questionData.error = "Something went wrong, I got <em>very</em> confused!";
-      changeDialogue(() => r.update('blocks'));
+      r.update('blocks');
     });
     return false;
   }

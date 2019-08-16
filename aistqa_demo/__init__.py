@@ -24,56 +24,77 @@ def requests_retry_session(retries=3, backoff_factor=0.3, status_forcelist=(500,
 
 
 MAX_WORKERS = 5
-TIMEOUT = 5
-STARTUP_TIMEOUT = 120 # 2 minutes?
-PARTIAL_RETRIES = 20
+TIMEOUT = 10
+PARTIAL_TIMEOUT = 1
 
 MODULES = {
     'rotowire': {
         'url': 'http://localhost:5001/',
-    }
+    },
+    'buboqa': {
+        'url': 'http://localhost:5002/',
+    },
 }
 
+partials = {}
+
+import datetime # GTDEBUG
 
 
 def fetch_partial(name, descriptor):
     try:
         print(f"Fetching partials from {name}: {descriptor['url'] + 'partials'}")
-        with requests_retry_session(retries=PARTIAL_RETRIES).get(descriptor['url'] + 'partials', timeout=STARTUP_TIMEOUT) as response:
+        print(datetime.datetime.now()) # GTDEBUG
+        # with requests_retry_session(retries=PARTIAL_RETRIES).get(descriptor['url'] + 'partials', timeout=STARTUP_TIMEOUT) as response:
+        with requests.get(descriptor['url'] + 'partials', timeout=PARTIAL_TIMEOUT) as response:
             if response.status_code == 200:
+                descriptor['enabled'] = True
                 print(f"Got partials from {name}")
                 return response.json()
     except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
+        print(f"Timeout from {name}")
+        descriptor['enabled'] = False
+        print(datetime.datetime.now()) # GTDEBUG
         pass # XXX really? if not, what? fatal error?
     return {}
 
 def fetch_partials():
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        global partials
         futures = [executor.submit(fetch_partial, name, descriptor) for name, descriptor in MODULES.items()]
-        partials = {}
         for future in as_completed(futures):
             data = future.result()
             partials.update(data)
-    return partials
+        return partials
 
-partials = fetch_partials()
+print("Fetching partials")
+fetch_partials()
+print("Fouch partials")
 
 
 def fetch_answer(question, name, descriptor, timeout=None):
+    if not descriptor.get('enabled', False):
+        return {
+            'error': 'Unavailable',
+        }
     # XXX currently taking both name and descriptor, do we need them? or just url?
     try:
+        print(datetime.datetime.now(), f"CALLING {name}") # GTDEBUG
         with requests.get(descriptor['url'], json={ "q": question }, timeout=timeout) as response:
             if response.status_code != 200:
                 return {
-                    'error': response.text
+                    'error': response.text,
                 }
 
             j = response.json()
             return j
     except requests.exceptions.Timeout:
+        print(datetime.datetime.now(), f"TIMEOUT {name}") # GTDEBUG
         return {
             'error': 'Timeout',
         }
+    except:
+        print(datetime.datetime.now(), f"SUMPTIN {name}") # GTDEBUG
 
 def fetch_answers(question):
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
@@ -81,7 +102,7 @@ def fetch_answers(question):
         viable = []
         for future in as_completed(futures):
             data = future.result()
-            if not 'error' in data:
+            if data:
                 viable.append(data)
     return viable
 

@@ -13,7 +13,7 @@
     {% raw %}
 
       {{#partial details}}
-        {{#if block.showDetail}}
+        {{#if block.detail}}
           <dl class="details">
             <dt>Query</dt>
             <dd>{{{wrap('code')(block.query)}}}</dd>
@@ -25,8 +25,8 @@
             <dd>{{{block.predicate.map(wrap('code')).join(', ')}}}</dd>
           </dl>
         {{/if}}
-        <label class="details" on-click="toggleDetail">
-          {{{block.showDetail ? "&#9650; Hide" : "&#9654; Show"}}} parsing results
+        <label class="details" on-click="@context.toggle('details')">
+          {{{block.detail ? "&#9650; Hide" : "&#9654; Show"}}} parsing results
         </label>
       {{/partial}}
 
